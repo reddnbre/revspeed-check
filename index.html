@@ -40,6 +40,18 @@ input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--lin
 .meter-track{height:9px;background:#e3eff1;border-radius:999px;overflow:hidden;margin-top:8px}
 .meter-fill{height:100%;width:0;background:linear-gradient(90deg,#49bfd0,#2bbec7)}
 .zip-insight{margin-top:8px;padding:10px;border-radius:10px;background:#f7fcfc;border:1px solid var(--line);color:#3a4c53;font-size:14px}
+.games{margin-top:14px;padding:12px;border-radius:12px;background:#f7fcfc;border:1px solid var(--line)}
+.game-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.game-tab{padding:8px 10px;border:1px solid var(--line);background:#fff;color:#375058;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+.game-tab.active{background:linear-gradient(90deg,var(--teal),var(--teal2));color:#fff;border-color:transparent}
+.game-panel{display:none}
+.game-panel.active{display:block}
+.game-title{font-weight:800;margin-bottom:6px}
+.game-note{font-size:13px;color:var(--muted);margin-bottom:8px}
+.game-btn{width:100%;justify-content:center;display:inline-flex}
+.game-score{margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#2d4249;font-weight:700}
+.game-inline{display:flex;gap:8px}
+.game-inline input{margin:0}
 .admin-overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.admin-overlay.show{display:flex}
 .admin{background:#111;border:1px solid rgba(255,255,255,.12);padding:20px;border-radius:18px;width:min(950px,100%);max-height:92vh;overflow:auto;box-shadow:0 30px 90px rgba(0,0,0,.75)}
 .admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.admin-head h2{margin:0}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-box{background:#181818;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}.admin-box h3{margin:0 0 6px}.note{color:var(--muted);font-size:13px;line-height:1.4;margin:5px 0 8px}
@@ -104,6 +116,39 @@ textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;bord
     <button onclick="checkZip()">Check</button>
     <div id="zipResult" class="note"></div>
     <div id="zipInsight" class="zip-insight">Enter ZIP to compare your speed with local benchmarks.</div>
+
+    <div class="games">
+      <h3>While You Test: Mini Games</h3>
+      <div class="game-tabs">
+        <button type="button" class="game-tab active" data-game-tab="reaction">Reaction Tap</button>
+        <button type="button" class="game-tab" data-game-tab="click">Speed Click</button>
+        <button type="button" class="game-tab" data-game-tab="guess">Guess My Speed</button>
+      </div>
+
+      <div id="gameReaction" class="game-panel active">
+        <div class="game-title">Reaction Tap</div>
+        <div class="game-note">Press start, wait for "Tap now!", then click fast.</div>
+        <button id="reactionBtn" type="button" class="game-btn">Start Reaction Test</button>
+        <div id="reactionScore" class="game-score">Best: -- ms</div>
+      </div>
+
+      <div id="gameClick" class="game-panel">
+        <div class="game-title">Speed Click (10s)</div>
+        <div class="game-note">Start, then click as fast as you can for 10 seconds.</div>
+        <button id="clickBtn" type="button" class="game-btn">Start 10s Challenge</button>
+        <div id="clickScore" class="game-score">Best: -- clicks</div>
+      </div>
+
+      <div id="gameGuess" class="game-panel">
+        <div class="game-title">Guess My Speed</div>
+        <div class="game-note">Guess your next download result and see how close you are.</div>
+        <div class="game-inline">
+          <input id="guessInput" type="number" min="1" step="1" placeholder="Enter Mbps guess">
+          <button id="guessBtn" type="button">Submit</button>
+        </div>
+        <div id="guessScore" class="game-score">No guess yet.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -172,6 +217,14 @@ const statusEl=document.getElementById("status");
 const zipInput=document.getElementById("zip");
 const zipResultEl=document.getElementById("zipResult");
 const zipInsightEl=document.getElementById("zipInsight");
+const gameTabs=[...document.querySelectorAll("[data-game-tab]")];
+const reactionBtn=document.getElementById("reactionBtn");
+const reactionScoreEl=document.getElementById("reactionScore");
+const clickBtn=document.getElementById("clickBtn");
+const clickScoreEl=document.getElementById("clickScore");
+const guessInput=document.getElementById("guessInput");
+const guessBtn=document.getElementById("guessBtn");
+const guessScoreEl=document.getElementById("guessScore");
 const adTop=document.getElementById("adTop");
 const adSidebar=document.getElementById("adSidebar");
 const adBottom=document.getElementById("adBottom");
@@ -209,6 +262,10 @@ const ZIP_BENCHMARKS={
 };
 const sessionState={
   history:[],
+  games:{
+    reactionBest:null,
+    clickBest:null
+  },
   admin:{
     verification:"",
     diversification:"",
@@ -216,6 +273,16 @@ const sessionState={
     side:"",
     bottom:""
   }
+};
+const gameState={
+  active:"reaction",
+  reactionTimer:null,
+  reactionReadyAt:0,
+  reactionArmed:false,
+  clickTimer:null,
+  clickRunning:false,
+  clickCount:0,
+  clickSecondsLeft:10
 };
 
 function getRegionalBenchmark(zip){
@@ -462,6 +529,103 @@ function checkZip(){
   zipInsightEl.innerText=`${place}: your latest test is ${formatDiff(downDiff)} Mbps ${downState} local download average and ${formatDiff(upDiff)} Mbps ${upState} local upload average${uploadNote}.`;
 }
 
+function activateGameTab(tab){
+  gameState.active=tab;
+  gameTabs.forEach(btn=>btn.classList.toggle("active",btn.dataset.gameTab===tab));
+  document.getElementById("gameReaction").classList.toggle("active",tab==="reaction");
+  document.getElementById("gameClick").classList.toggle("active",tab==="click");
+  document.getElementById("gameGuess").classList.toggle("active",tab==="guess");
+}
+
+function resetReactionTimer(){
+  if(gameState.reactionTimer){
+    clearTimeout(gameState.reactionTimer);
+    gameState.reactionTimer=null;
+  }
+}
+
+function startReactionGame(){
+  resetReactionTimer();
+  gameState.reactionArmed=false;
+  reactionBtn.textContent="Wait for it...";
+  const delay=900+Math.floor(Math.random()*2200);
+  gameState.reactionTimer=setTimeout(()=>{
+    gameState.reactionArmed=true;
+    gameState.reactionReadyAt=performance.now();
+    reactionBtn.textContent="Tap now!";
+  },delay);
+}
+
+function handleReactionClick(){
+  if(!gameState.reactionArmed){
+    if(reactionBtn.textContent==="Wait for it..."){
+      resetReactionTimer();
+      reactionBtn.textContent="Too soon! Start again";
+      return;
+    }
+    startReactionGame();
+    return;
+  }
+  const ms=Math.round(performance.now()-gameState.reactionReadyAt);
+  gameState.reactionArmed=false;
+  reactionBtn.textContent="Start Reaction Test";
+  if(sessionState.games.reactionBest===null || ms<sessionState.games.reactionBest){
+    sessionState.games.reactionBest=ms;
+  }
+  reactionScoreEl.textContent=`Last: ${ms} ms • Best: ${sessionState.games.reactionBest} ms`;
+}
+
+function finishClickGame(){
+  if(gameState.clickTimer){
+    clearInterval(gameState.clickTimer);
+    gameState.clickTimer=null;
+  }
+  gameState.clickRunning=false;
+  const cps=(gameState.clickCount/10).toFixed(1);
+  if(sessionState.games.clickBest===null || gameState.clickCount>sessionState.games.clickBest){
+    sessionState.games.clickBest=gameState.clickCount;
+  }
+  clickBtn.textContent="Start 10s Challenge";
+  clickScoreEl.textContent=`Last: ${gameState.clickCount} clicks (${cps} CPS) • Best: ${sessionState.games.clickBest}`;
+}
+
+function handleClickGame(){
+  if(!gameState.clickRunning){
+    gameState.clickRunning=true;
+    gameState.clickCount=0;
+    gameState.clickSecondsLeft=10;
+    clickBtn.textContent="Tap! 10s left";
+    clickScoreEl.textContent="Go!";
+    gameState.clickTimer=setInterval(()=>{
+      gameState.clickSecondsLeft--;
+      if(gameState.clickSecondsLeft<=0){
+        finishClickGame();
+        return;
+      }
+      clickBtn.textContent=`Tap! ${gameState.clickSecondsLeft}s left`;
+    },1000);
+    return;
+  }
+  gameState.clickCount++;
+  clickScoreEl.textContent=`Clicks: ${gameState.clickCount}`;
+}
+
+function submitGuess(){
+  const guess=Number(guessInput.value);
+  if(!Number.isFinite(guess) || guess<=0){
+    guessScoreEl.textContent="Enter a valid Mbps guess first.";
+    return;
+  }
+  if(sessionState.history.length===0){
+    guessScoreEl.textContent="Run a speed test first, then submit your guess.";
+    return;
+  }
+  const latestDown=sessionState.history[0].d;
+  const diff=Math.abs(latestDown-guess);
+  const pct=Math.max(0,100-(diff/Math.max(latestDown,1))*100);
+  guessScoreEl.textContent=`Guess: ${guess.toFixed(0)} Mbps • Actual: ${latestDown.toFixed(1)} Mbps • Accuracy: ${pct.toFixed(1)}%`;
+}
+
 function runScriptsInside(container){
   const scripts=container.querySelectorAll("script");
   scripts.forEach(oldScript=>{
@@ -542,6 +706,10 @@ secretTitle.addEventListener("click",()=>{
 });
 
 startBtn.addEventListener("click",run);
+gameTabs.forEach(btn=>btn.addEventListener("click",()=>activateGameTab(btn.dataset.gameTab)));
+reactionBtn.addEventListener("click",handleReactionClick);
+clickBtn.addEventListener("click",handleClickGame);
+guessBtn.addEventListener("click",submitGuess);
 document.getElementById("saveAdminBtn").addEventListener("click",saveAdmin);
 document.getElementById("clearAdminBtn").addEventListener("click",clearAdmin);
 document.getElementById("closeAdminBtn").addEventListener("click",closeAdmin);
