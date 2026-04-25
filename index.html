@@ -186,6 +186,7 @@ const API_BASE=rawApiBase ? rawApiBase.replace(/\/+$/,"") : ((location.hostname=
 const PUBLIC_TEST_BASE="https://speed.cloudflare.com";
 const IS_BACKEND_MODE=Boolean(API_BASE);
 const PING_SAMPLES=6;
+const DOWNLOAD_PASSES=3;
 const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
 const sessionState={
@@ -234,6 +235,10 @@ function median(list){
   return sorted.length%2===0 ? (sorted[mid-1]+sorted[mid])/2 : sorted[mid];
 }
 
+function sleep(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
 async function measurePing(){
   const samples=[];
   for(let i=0;i<PING_SAMPLES;i++){
@@ -249,12 +254,21 @@ async function measurePing(){
   return Math.round(median(samples));
 }
 
-async function measureDownloadMbps(){
+async function warmUpDownload(){
+  const warmupUrl=IS_BACKEND_MODE
+    ? `${API_BASE}/download?bytes=2000000&ts=${Date.now()}`
+    : `${PUBLIC_TEST_BASE}/__down?bytes=2000000&ts=${Date.now()}`;
+  const warmupResponse=await fetch(warmupUrl,{cache:"no-store"});
+  await warmupResponse.blob();
+}
+
+async function measureSingleDownloadMbps(pass,totalPasses){
   const controller=new AbortController();
   const timeoutId=setTimeout(()=>controller.abort(),DOWNLOAD_TEST_SECONDS*1000);
   const start=performance.now();
   let bytes=0;
   try{
+    statusEl.innerText=`Download test ${pass}/${totalPasses}...`;
     const downloadUrl=IS_BACKEND_MODE
       ? `${API_BASE}/download?bytes=250000000&ts=${Date.now()}`
       : `${PUBLIC_TEST_BASE}/__down?bytes=250000000&ts=${Date.now()}`;
@@ -279,6 +293,17 @@ async function measureDownloadMbps(){
   }
   const elapsedSec=Math.max((performance.now()-start)/1000,0.001);
   return (bytes*8/elapsedSec)/1024/1024;
+}
+
+async function measureDownloadMbps(){
+  await warmUpDownload();
+  const samples=[];
+  for(let i=0;i<DOWNLOAD_PASSES;i++){
+    const sample=await measureSingleDownloadMbps(i+1,DOWNLOAD_PASSES);
+    samples.push(sample);
+    await sleep(180);
+  }
+  return median(samples);
 }
 
 async function tryUploadEndpoint(payload){
@@ -320,7 +345,6 @@ async function run(){
     pingEl.innerText=ping+" ms";
     kpiPing.innerText=ping+" ms";
 
-    statusEl.innerText="Download test...";
     const down=await measureDownloadMbps();
     downEl.innerText=down.toFixed(1)+" Mbps";
     kpiDown.innerText=down.toFixed(1)+" Mbps";
@@ -328,6 +352,7 @@ async function run(){
 
     statusEl.innerText="Upload test...";
     let up=null;
+    let uploadEstimated=false;
     try{
       up=await measureUploadMbps();
       upEl.innerText=up.toFixed(1)+" Mbps";
@@ -335,16 +360,17 @@ async function run(){
       draw(up,"Upload","Mbps",300);
     }catch(uploadError){
       up=down*0.3;
-      upEl.innerText=up.toFixed(1)+" Mbps";
-      kpiUp.innerText=up.toFixed(1)+" Mbps";
+      uploadEstimated=true;
+      upEl.innerText=up.toFixed(1)+" Mbps (est)";
+      kpiUp.innerText=up.toFixed(1)+" Mbps*";
       draw(up,"Upload","Mbps",300);
-      statusEl.innerText="Upload estimated from download in browser mode.";
+      statusEl.innerText="Upload estimated from download (browser fallback).";
     }
 
     statusEl.innerText="Done";
     setBars(down,up||0);
     speedGrade.innerText=getGrade(down,ping);
-    saveHistory(ping,down,up);
+    saveHistory(ping,down,up,uploadEstimated);
     loadHistory();
   }catch(e){
     speedGrade.innerText="Unavailable";
@@ -355,14 +381,14 @@ async function run(){
   }
 }
 
-function saveHistory(p,d,u){
-  sessionState.history.unshift({p,d,u,date:new Date().toLocaleString()});
+function saveHistory(p,d,u,uploadEstimated=false){
+  sessionState.history.unshift({p,d,u,uploadEstimated,date:new Date().toLocaleString()});
   sessionState.history=sessionState.history.slice(0,5);
 }
 
 function loadHistory(){
   let h=sessionState.history;
-  historyEl.innerHTML=h.length?h.map(x=>`<div class='box'>${x.date}<br>P:${x.p} ms | D:${x.d.toFixed(1)} Mbps | U:${x.u===null?"N/A":x.u.toFixed(1)+" Mbps"}</div>`).join(""):"<div class='box'>No tests yet.</div>";
+  historyEl.innerHTML=h.length?h.map(x=>`<div class='box'>${x.date}<br>P:${x.p} ms | D:${x.d.toFixed(1)} Mbps | U:${x.u===null?"N/A":x.u.toFixed(1)+" Mbps"+(x.uploadEstimated?" (est)":"")}</div>`).join(""):"<div class='box'>No tests yet.</div>";
 }
 
 async function getIP(){
