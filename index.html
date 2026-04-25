@@ -6,44 +6,64 @@
 <title>RevSpeed Check</title>
 <meta name="description" content="Test your internet speed instantly.">
 <style>
-:root{--bg:#05070d;--panel:#0e131f;--panel2:#141c2d;--orange:#ff9f1c;--orange2:#ff6a00;--text:#fff;--muted:#9aa6c4;--green:#3cff9d;--red:#ff4d4d;--blue:#4cc9f0;--violet:#9d4edd}
+:root{--bg:#eaf6f7;--panel:#ffffff;--line:#d7e8ea;--teal:#2bbec7;--teal2:#41d0be;--ink:#263238;--muted:#6f8793;--green:#2e9f6b;--red:#d04d4d}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 0,rgba(76,201,240,.22),transparent 35%),radial-gradient(circle at 80% 10%,rgba(157,78,221,.2),transparent 35%),radial-gradient(circle at 50% 100%,rgba(255,106,0,.15),transparent 45%),var(--bg);color:#fff;font-family:Inter,Segoe UI,Arial,Helvetica,sans-serif;display:flex;justify-content:center;align-items:center;padding:26px}
-.app{width:min(1220px,100%);display:grid;grid-template-columns:1.12fr .88fr;gap:18px}
-.card{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.01));backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
-h1{cursor:pointer;user-select:none;margin:0 0 4px;font-size:40px;line-height:1.06;letter-spacing:-.8px}
-.sub{color:var(--muted);margin:0 0 12px;font-size:14px}
-canvas{width:100%;border-radius:18px;background:radial-gradient(circle at 50% 0,#141a2b,#090d15 62%);display:block;margin:12px 0;border:1px solid rgba(255,255,255,.08)}
-button{border:0;border-radius:999px;padding:11px 20px;font-weight:800;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#101010;cursor:pointer;margin:4px;box-shadow:0 10px 30px rgba(255,106,0,.35);transition:transform .15s ease,filter .15s ease}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Inter,Segoe UI,Arial,Helvetica,sans-serif;padding:18px}
+.nav{max-width:1220px;margin:0 auto 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.3px}
+.nav-links{display:flex;gap:14px;color:var(--muted);font-weight:600}
+.app{max-width:1220px;margin:0 auto;display:grid;grid-template-columns:1.12fr .88fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 6px 20px rgba(16,39,46,.05)}
+h1{cursor:pointer;user-select:none;margin:0 0 4px;font-size:42px;line-height:1.04;letter-spacing:-1px;color:#2a3a3f}
+.sub{color:var(--muted);margin:0 0 12px;font-size:15px}
+canvas{width:100%;border-radius:12px;background:linear-gradient(180deg,#fbffff,#f4fbfb);display:block;margin:10px 0;border:1px solid var(--line)}
+button{border:0;border-radius:10px;padding:11px 20px;font-weight:800;background:linear-gradient(90deg,var(--teal),var(--teal2));color:#fff;cursor:pointer;margin:0;transition:transform .15s ease,filter .15s ease}
 button:hover{transform:translateY(-1px);filter:brightness(1.05)}
 button:disabled{opacity:.7;cursor:not-allowed;transform:none}
-.dark-btn{background:#222a3f;color:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:none}
+.dark-btn{background:#f4f9f9;color:#3f525a;border:1px solid var(--line);box-shadow:none}
 .results,.history{display:grid;gap:9px}
-.box{background:linear-gradient(180deg,#182037,#131b30);padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.09)}
+.box{background:#f7fcfc;padding:11px 12px;border-radius:10px;border:1px solid var(--line)}
 .box span{font-weight:700}
-.ad-slot{min-height:84px;margin:10px 0;border:1px dashed rgba(255,159,28,.65);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:10px;text-align:center;overflow:hidden;background:rgba(0,0,0,.18)}.ad-slot:empty:before{content:attr(data-label)}
-input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#0b1120;color:#fff;margin-bottom:8px}
+.ad-slot{min-height:72px;margin:10px 0;border:1px dashed #b8d5d9;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:10px;text-align:center;overflow:hidden;background:#f9fcfc}.ad-slot:empty:before{content:attr(data-label)}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#24353b;margin-bottom:8px}
 .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
-.kpi{background:linear-gradient(180deg,#1a2340,#121a2d);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px}
+.kpi{background:#f4fafa;border:1px solid var(--line);border-radius:10px;padding:10px}
 .kpi-label{display:block;color:var(--muted);font-size:12px}
-.kpi-value{display:block;font-weight:800;font-size:18px;margin-top:3px}
+.kpi-value{display:block;font-weight:800;font-size:22px;margin-top:3px;color:#26383f}
 .status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #status{margin:0}
+.meter-label{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px}
+.score{font-size:36px;font-weight:800;color:#2d4249}
+.score-note{font-size:14px;color:var(--muted)}
+.metric-row{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f9fcfc}
+.metric-top{display:flex;justify-content:space-between;font-weight:700}
+.meter-track{height:9px;background:#e3eff1;border-radius:999px;overflow:hidden;margin-top:8px}
+.meter-fill{height:100%;width:0;background:linear-gradient(90deg,#49bfd0,#2bbec7)}
 .admin-overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.admin-overlay.show{display:flex}
 .admin{background:#111;border:1px solid rgba(255,255,255,.12);padding:20px;border-radius:18px;width:min(950px,100%);max-height:92vh;overflow:auto;box-shadow:0 30px 90px rgba(0,0,0,.75)}
 .admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.admin-head h2{margin:0}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-box{background:#181818;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}.admin-box h3{margin:0 0 6px}.note{color:var(--muted);font-size:13px;line-height:1.4;margin:5px 0 8px}
 textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px;font-family:Consolas,monospace;resize:vertical}.wide{grid-column:1/-1}
 #saveMsg{color:var(--green);font-size:13px;margin-top:8px;min-height:18px}
-@media(max-width:920px){.app,.admin-grid{grid-template-columns:1fr}h1{font-size:32px}}
+@media(max-width:920px){.app,.admin-grid{grid-template-columns:1fr}.nav{display:block}.nav-links{margin-top:8px}h1{font-size:32px}}
 </style>
 </head>
 <body>
+<div class="nav">
+  <div class="brand">RevSpeed Check</div>
+  <div class="nav-links"><span>ISP Speed Tests</span><span>Speed Guides</span><span>About</span></div>
+</div>
 <div class="app">
   <div class="card">
     <h1 id="secretTitle">RevSpeed Check</h1>
     <p class="sub">Precision internet benchmark with live network telemetry.</p>
     
     <div id="adTop" class="ad-slot" data-label="Top Ad Placement">Top Ad Placement</div>
+    <div class="meter-label">
+      <div>
+        <div class="score" id="speedGrade">Ready</div>
+        <div class="score-note">Your internet performance snapshot</div>
+      </div>
+    </div>
     <canvas id="meter" width="500" height="260"></canvas>
     <div class="status-row">
       <button id="startBtn">Run Speed Test</button>
@@ -62,9 +82,15 @@ textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;bord
     <div id="adSidebar" class="ad-slot" data-label="Sidebar Ad Placement">Sidebar Ad Placement</div>
     <h2>Results</h2>
     <div class="results">
+      <div class="metric-row">
+        <div class="metric-top"><span>Download Speed</span><span id="down">--</span></div>
+        <div class="meter-track"><div id="downBar" class="meter-fill"></div></div>
+      </div>
+      <div class="metric-row">
+        <div class="metric-top"><span>Upload Speed</span><span id="up">--</span></div>
+        <div class="meter-track"><div id="upBar" class="meter-fill"></div></div>
+      </div>
       <div class="box">Ping: <span id="ping">--</span></div>
-      <div class="box">Download: <span id="down">--</span></div>
-      <div class="box">Upload: <span id="up">--</span></div>
       <div class="box">ISP: <span id="isp">--</span></div>
       <div class="box">IP: <span id="ip">--</span></div>
     </div>
@@ -131,6 +157,9 @@ const ctx=document.getElementById("meter").getContext("2d");
 const pingEl=document.getElementById("ping");
 const downEl=document.getElementById("down");
 const upEl=document.getElementById("up");
+const downBar=document.getElementById("downBar");
+const upBar=document.getElementById("upBar");
+const speedGrade=document.getElementById("speedGrade");
 const kpiPing=document.getElementById("kpiPing");
 const kpiDown=document.getElementById("kpiDown");
 const kpiUp=document.getElementById("kpiUp");
@@ -172,17 +201,31 @@ const sessionState={
 function draw(v,t,unit="Mbps",maxValue=1000){
   const safeV=Math.max(0,Math.min(v,maxValue));
   ctx.clearRect(0,0,500,260);
-  ctx.beginPath();ctx.arc(250,180,100,Math.PI,2*Math.PI);ctx.strokeStyle="#27314f";ctx.lineWidth=16;ctx.stroke();
+  ctx.beginPath();ctx.arc(250,180,100,Math.PI,2*Math.PI);ctx.strokeStyle="#d9e8ec";ctx.lineWidth=16;ctx.stroke();
   const gradient=ctx.createLinearGradient(145,180,355,180);
-  gradient.addColorStop(0,"#4cc9f0");
-  gradient.addColorStop(.52,"#ff9f1c");
-  gradient.addColorStop(1,"#ff6a00");
+  gradient.addColorStop(0,"#49bfd0");
+  gradient.addColorStop(.52,"#2bbec7");
+  gradient.addColorStop(1,"#41d0be");
   ctx.beginPath();ctx.arc(250,180,100,Math.PI,Math.PI+(safeV/maxValue)*Math.PI);ctx.strokeStyle=gradient;ctx.lineWidth=16;ctx.stroke();
-  ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.fillStyle="#274048";ctx.textAlign="center";
   ctx.font="20px Inter, Arial";ctx.fillText(t,250,138);
   ctx.font="18px Inter, Arial";ctx.fillText(v.toFixed(1)+" "+unit,250,190);
-  ctx.fillStyle="#9aa6c4";
+  ctx.fillStyle="#6f8793";
   ctx.font="12px Inter, Arial";ctx.fillText("Scale: 0-"+maxValue+" "+unit,250,216);
+}
+
+function setBars(download,upload){
+  const downPct=Math.max(0,Math.min((download/1000)*100,100));
+  const upPct=Math.max(0,Math.min((upload/300)*100,100));
+  downBar.style.width=`${downPct}%`;
+  upBar.style.width=`${upPct}%`;
+}
+
+function getGrade(download,ping){
+  if(download>=600 && ping<=35) return "Excellent";
+  if(download>=250 && ping<=60) return "Very Good";
+  if(download>=100 && ping<=90) return "Good";
+  return "Fair";
 }
 
 function median(list){
@@ -266,6 +309,8 @@ async function run(){
   kpiPing.innerText="--";
   kpiDown.innerText="--";
   kpiUp.innerText="--";
+  speedGrade.innerText="Testing...";
+  setBars(0,0);
   try{
     if(!IS_BACKEND_MODE){
       statusEl.innerText="Public mode: ping/download enabled. Set REVSPEED_API_BASE for upload + best accuracy.";
@@ -297,9 +342,12 @@ async function run(){
     }
 
     statusEl.innerText="Done";
+    setBars(down,up||0);
+    speedGrade.innerText=getGrade(down,ping);
     saveHistory(ping,down,up);
     loadHistory();
   }catch(e){
+    speedGrade.innerText="Unavailable";
     statusEl.innerText="Test blocked in this preview. Host on your own domain for best accuracy.";
   }finally{
     startBtn.disabled=false;
