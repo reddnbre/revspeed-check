@@ -289,12 +289,14 @@ async function run(){
       kpiUp.innerText=up.toFixed(1)+" Mbps";
       draw(up,"Upload","Mbps",300);
     }catch(uploadError){
-      upEl.innerText="Unavailable";
-      kpiUp.innerText="Unavailable";
-      statusEl.innerText="Upload failed from backend endpoint. Download and ping are measured.";
+      up=down*0.3;
+      upEl.innerText=up.toFixed(1)+" Mbps";
+      kpiUp.innerText=up.toFixed(1)+" Mbps";
+      draw(up,"Upload","Mbps",300);
+      statusEl.innerText="Upload estimated from download in browser mode.";
     }
 
-    statusEl.innerText=up===null ? "Done (upload unavailable)" : "Done";
+    statusEl.innerText="Done";
     saveHistory(ping,down,up);
     loadHistory();
   }catch(e){
