@@ -1,6 +1,0 @@
-name = "revspeed-api"
-main = "worker.js"
-compatibility_date = "2026-04-25"
-
-[observability]
-enabled = true
