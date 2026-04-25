@@ -1,0 +1,12 @@
+services:
+  librespeed:
+    image: ghcr.io/librespeed/speedtest:latest
+    container_name: revspeed-librespeed
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      TITLE: RevSpeed Check
+      TELEMETRY: "false"
+      REDACT_IP_ADDRESSES: "true"
+    ports:
+      - "8080:8080"

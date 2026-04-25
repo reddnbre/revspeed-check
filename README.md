@@ -1,21 +1,37 @@
 # RevSpeed Check
 
-Simple browser-based internet speed test page for GitHub Pages hosting.
+This repo now includes a LibreSpeed server setup so you can run real ping/download/upload tests with less browser API hassle.
 
-## Run locally
+## Fastest path (LibreSpeed with Docker)
 
-Open `index.html` in your browser.
+1. Install Docker Desktop.
+2. Open terminal in this folder:
+   - `C:\Users\cdwbn\revspeed-check\librespeed`
+3. Start LibreSpeed:
+   - `docker compose up -d`
+4. Open in browser:
+   - `http://localhost:8080`
 
-## Deploy to GitHub Pages
+That is your working LibreSpeed test page (including upload).
 
-1. Create a new GitHub repository (public), for example `revspeed-check`.
-2. Push this folder to your `main` branch.
-3. In GitHub, go to Settings -> Pages.
-4. Set Source to "Deploy from a branch".
-5. Select branch `main` and folder `/ (root)`.
-6. Save and wait for deployment.
+## Files added
+
+- `librespeed/docker-compose.yml`: ready-to-run LibreSpeed server config
+
+## Stop/start commands
+
+- Stop:
+  - `docker compose down`
+- Start again:
+  - `docker compose up -d`
+- View logs:
+  - `docker compose logs -f`
+
+## Deploy online later
+
+If you want it public, deploy the same container on a VPS or Docker-capable host, then point a domain/subdomain to it (for example `speed.yourdomain.com`).
 
 ## Notes
 
-- Results depend on browser/network conditions and test endpoint CORS support.
-- For best consistency, run multiple tests and average results.
+- LibreSpeed gives much better upload realism than browser-only hacks.
+- Run multiple tests and use median values for best consistency.
