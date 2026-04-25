@@ -1,21 +1,46 @@
 # RevSpeed Check
 
-Simple browser-based internet speed test page for GitHub Pages hosting.
+RevSpeed frontend + Node backend for more consistent ping/download/upload testing.
+
+## Project structure
+
+- `index.html`: frontend UI and test runner
+- `server.js`: Node/Express speed test API
 
 ## Run locally
 
-Open `index.html` in your browser.
+1. Install dependencies:
+   - `npm install`
+2. Start backend:
+   - `npm start`
+3. Open:
+   - `http://localhost:8787/index.html`
 
-## Deploy to GitHub Pages
+When frontend runs on localhost, it auto-uses `http://localhost:8787`.
 
-1. Create a new GitHub repository (public), for example `revspeed-check`.
-2. Push this folder to your `main` branch.
-3. In GitHub, go to Settings -> Pages.
-4. Set Source to "Deploy from a branch".
-5. Select branch `main` and folder `/ (root)`.
-6. Save and wait for deployment.
+## API endpoints
+
+- `GET /health`: health check
+- `GET /ping`: low payload latency endpoint
+- `GET /download?bytes=250000000`: streams bytes for download measurement
+- `POST /upload`: accepts binary payload for upload measurement
+
+## Deploy frontend + backend separately
+
+If frontend is on GitHub Pages and backend is elsewhere:
+
+1. Deploy backend (Render/Railway/Fly/VPS).
+2. Before loading `index.html`, define:
+
+```html
+<script>
+  window.REVSPEED_API_BASE = "https://your-backend-domain.com";
+</script>
+```
+
+3. Then load the page script normally.
 
 ## Notes
 
-- Results depend on browser/network conditions and test endpoint CORS support.
-- For best consistency, run multiple tests and average results.
+- Browser tests are indicative, not ISP-certified lab measurements.
+- Run 2-3 tests and use median values for best consistency.

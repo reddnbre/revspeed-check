@@ -152,7 +152,8 @@ const saveMsg=document.getElementById("saveMsg");
 const startBtn=document.getElementById("startBtn");
 let clicks=0;
 let clickReset;
-const TEST_BASE_URL="https://speed.cloudflare.com";
+const rawApiBase=(window.REVSPEED_API_BASE||"").trim();
+const API_BASE=rawApiBase ? rawApiBase.replace(/\/+$/,"") : ((location.hostname==="localhost"||location.hostname==="127.0.0.1") ? "http://localhost:8787" : "");
 const PING_SAMPLES=6;
 const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
@@ -166,12 +167,6 @@ const sessionState={
     bottom:""
   }
 };
-const UPLOAD_ENDPOINTS=[
-  `${TEST_BASE_URL}/__up`,
-  "https://httpbin.org/post",
-  "https://postman-echo.com/post"
-];
-
 function draw(v,t,unit="Mbps",maxValue=1000){
   const safeV=Math.max(0,Math.min(v,maxValue));
   ctx.clearRect(0,0,500,260);
@@ -198,7 +193,7 @@ async function measurePing(){
   const samples=[];
   for(let i=0;i<PING_SAMPLES;i++){
     const start=performance.now();
-    await fetch(`${TEST_BASE_URL}/cdn-cgi/trace?ts=${Date.now()}_${i}`,{cache:"no-store"});
+    await fetch(`${API_BASE}/ping?ts=${Date.now()}_${i}`,{cache:"no-store"});
     const elapsed=performance.now()-start;
     samples.push(elapsed);
     draw(Math.min(100,(i+1)*(100/PING_SAMPLES)),"Ping Progress","%",100);
@@ -212,7 +207,7 @@ async function measureDownloadMbps(){
   const start=performance.now();
   let bytes=0;
   try{
-    const response=await fetch(`${TEST_BASE_URL}/__down?bytes=250000000&ts=${Date.now()}`,{
+    const response=await fetch(`${API_BASE}/download?bytes=250000000&ts=${Date.now()}`,{
       cache:"no-store",
       signal:controller.signal
     });
@@ -235,9 +230,9 @@ async function measureDownloadMbps(){
   return (bytes*8/elapsedSec)/1024/1024;
 }
 
-async function tryUploadEndpoint(url,payload){
+async function tryUploadEndpoint(payload){
   const start=performance.now();
-  await fetch(url,{
+  await fetch(`${API_BASE}/upload?ts=${Date.now()}`,{
     method:"POST",
     cache:"no-store",
     body:payload
@@ -248,16 +243,7 @@ async function tryUploadEndpoint(url,payload){
 
 async function measureUploadMbps(){
   const payload=new Blob([new Uint8Array(UPLOAD_TEST_BYTES)],{type:"application/octet-stream"});
-  let lastError;
-  for(const baseUrl of UPLOAD_ENDPOINTS){
-    const url=baseUrl.includes("?") ? `${baseUrl}&ts=${Date.now()}` : `${baseUrl}?ts=${Date.now()}`;
-    try{
-      return await tryUploadEndpoint(url,payload);
-    }catch(error){
-      lastError=error;
-    }
-  }
-  throw lastError||new Error("All upload endpoints failed");
+  return tryUploadEndpoint(payload);
 }
 
 async function run(){
@@ -270,6 +256,10 @@ async function run(){
   kpiDown.innerText="--";
   kpiUp.innerText="--";
   try{
+    if(!API_BASE){
+      statusEl.innerText="Backend not configured. Set window.REVSPEED_API_BASE to your Node API URL.";
+      return;
+    }
     statusEl.innerText="Ping test...";
     const ping=await measurePing();
     pingEl.innerText=ping+" ms";
@@ -291,7 +281,7 @@ async function run(){
     }catch(uploadError){
       upEl.innerText="Unavailable";
       kpiUp.innerText="Unavailable";
-      statusEl.innerText="Upload failed on available endpoints. Download and ping are measured.";
+      statusEl.innerText="Upload failed from backend endpoint. Download and ping are measured.";
     }
 
     statusEl.innerText=up===null ? "Done (upload unavailable)" : "Done";
@@ -408,6 +398,9 @@ document.getElementById("exitAdminBtn").addEventListener("click",closeAdmin);
 adminOverlay.addEventListener("click",e=>{if(e.target===adminOverlay)closeAdmin();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAdmin();});
 
+if(!API_BASE){
+  statusEl.innerText="Backend not set. Use window.REVSPEED_API_BASE='https://your-api-domain' or run locally.";
+}
 loadAdmin();loadAds();loadHistory();getIP();draw(0,"Ready","Mbps",1000);
 </script>
 </body>

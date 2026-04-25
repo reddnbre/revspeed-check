@@ -1,0 +1,28 @@
+{
+  "name": "revspeed-check",
+  "version": "1.0.0",
+  "description": "Simple browser-based internet speed test page for GitHub Pages hosting.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests configured\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reddnbre/revspeed-check.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/reddnbre/revspeed-check/issues"
+  },
+  "homepage": "https://github.com/reddnbre/revspeed-check#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "helmet": "^8.1.0"
+  }
+}
