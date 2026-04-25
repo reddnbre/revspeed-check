@@ -189,6 +189,8 @@ const PING_SAMPLES=6;
 const DOWNLOAD_PASSES=3;
 const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
+const ESTIMATED_UPLOAD_RATIO=0.08;
+const ESTIMATED_UPLOAD_CAP_MBPS=80;
 const sessionState={
   history:[],
   admin:{
@@ -359,7 +361,7 @@ async function run(){
       kpiUp.innerText=up.toFixed(1)+" Mbps";
       draw(up,"Upload","Mbps",300);
     }catch(uploadError){
-      up=down*0.3;
+      up=Math.min(down*ESTIMATED_UPLOAD_RATIO,ESTIMATED_UPLOAD_CAP_MBPS);
       uploadEstimated=true;
       upEl.innerText=up.toFixed(1)+" Mbps (est)";
       kpiUp.innerText=up.toFixed(1)+" Mbps*";
