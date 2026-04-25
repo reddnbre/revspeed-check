@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RevSpeed Check</title>
+<meta name="description" content="Test your internet speed instantly.">
+<style>
+:root{--bg:#080808;--panel:#121212;--panel2:#1b1b1b;--orange:#ff9f1c;--orange2:#ff6a00;--text:#fff;--muted:#b7b7b7;--green:#3cff9d;--red:#ff4d4d}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at top,rgba(255,159,28,.15),transparent 32%),#080808;color:#fff;font-family:Arial,Helvetica,sans-serif;display:flex;justify-content:center;align-items:center;padding:20px}
+.app{width:min(1100px,100%);display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#121212;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+h1{cursor:pointer;user-select:none;margin:0 0 6px;font-size:34px}.sub{color:var(--muted);margin-bottom:12px}
+canvas{width:100%;border-radius:16px;background:#000;display:block;margin:10px 0}
+button{border:0;border-radius:999px;padding:10px 18px;font-weight:800;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#111;cursor:pointer;margin:4px}.dark-btn{background:#252525;color:#fff;border:1px solid rgba(255,255,255,.12)}
+.results,.history{display:grid;gap:8px}.box{background:#1b1b1b;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.06)}
+.ad-slot{min-height:80px;margin:10px 0;border:1px dashed orange;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:10px;text-align:center;overflow:hidden}.ad-slot:empty:before{content:attr(data-label)}
+input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#050505;color:#fff;margin-bottom:8px}
+.admin-overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.admin-overlay.show{display:flex}
+.admin{background:#111;border:1px solid rgba(255,255,255,.12);padding:20px;border-radius:18px;width:min(950px,100%);max-height:92vh;overflow:auto;box-shadow:0 30px 90px rgba(0,0,0,.75)}
+.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.admin-head h2{margin:0}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-box{background:#181818;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}.admin-box h3{margin:0 0 6px}.note{color:var(--muted);font-size:13px;line-height:1.4;margin:5px 0 8px}
+textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px;font-family:Consolas,monospace;resize:vertical}.wide{grid-column:1/-1}
+#saveMsg{color:var(--green);font-size:13px;margin-top:8px;min-height:18px}
+@media(max-width:820px){.app,.admin-grid{grid-template-columns:1fr}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1 id="secretTitle">RevSpeed Check</h1>
+    
+    <div id="adTop" class="ad-slot" data-label="Top Ad Placement">Top Ad Placement</div>
+    <canvas id="meter" width="500" height="260"></canvas>
+    <button id="startBtn">Start Speed Test</button>
+    <div id="status" class="note">Ready</div>
+    <div id="adBottom" class="ad-slot" data-label="Bottom Ad Placement">Bottom Ad Placement</div>
+    
+  </div>
+
+  <div class="card">
+    <div id="adSidebar" class="ad-slot" data-label="Sidebar Ad Placement">Sidebar Ad Placement</div>
+    <h2>Results</h2>
+    <div class="results">
+      <div class="box">Ping: <span id="ping">--</span></div>
+      <div class="box">Download: <span id="down">--</span></div>
+      <div class="box">Upload: <span id="up">--</span></div>
+      <div class="box">ISP: <span id="isp">--</span></div>
+      <div class="box">IP: <span id="ip">--</span></div>
+    </div>
+
+    <h3>History</h3>
+    <div id="history" class="history"></div>
+
+    <h3>ZIP</h3>
+    <input id="zip" placeholder="Enter ZIP code">
+    <button onclick="checkZip()">Check</button>
+    <div id="zipResult" class="note"></div>
+  </div>
+</div>
+
+<div id="adminOverlay" class="admin-overlay">
+  <div class="admin">
+    <div class="admin-head">
+      <h2>RevSpeed Back Office</h2>
+      <button id="exitAdminBtn" class="dark-btn" type="button">Exit</button>
+    </div>
+    <p class="note">Paste verification, diversification, and ad placement codes here. This version saves to this browser using localStorage for testing.</p>
+
+    <div class="admin-grid">
+      <div class="admin-box wide">
+        <h3>Verification Codes</h3>
+        <p class="note">Google Search Console, AdSense verification, Bing Webmaster, Meta, Pinterest, TikTok, etc. On a live PHP site, these should be injected inside the &lt;head&gt; tag.</p>
+        <textarea id="verificationCode" placeholder="Paste site ownership verification codes here"></textarea>
+      </div>
+
+      <div class="admin-box wide">
+        <h3>Diversification / Tracking Codes</h3>
+        <p class="note">Analytics, pixels, extra ad-network verification, or safe tracking scripts.</p>
+        <textarea id="diversificationCode" placeholder="Paste diversification/tracking codes here"></textarea>
+      </div>
+
+      <div class="admin-box">
+        <h3>Top Ad Placement</h3>
+        <textarea id="topAdCode" placeholder="Paste top ad code"></textarea>
+      </div>
+
+      <div class="admin-box">
+        <h3>Sidebar Ad Placement</h3>
+        <textarea id="sideAdCode" placeholder="Paste sidebar ad code"></textarea>
+      </div>
+
+      <div class="admin-box">
+        <h3>Bottom Ad Placement</h3>
+        <textarea id="bottomAdCode" placeholder="Paste bottom ad code"></textarea>
+      </div>
+
+      <div class="admin-box">
+        <h3>Controls</h3>
+        <button id="saveAdminBtn" type="button">Save</button>
+        <button id="clearAdminBtn" class="dark-btn" type="button">Clear</button>
+        <button id="closeAdminBtn" class="dark-btn" type="button">Close</button>
+        <div id="saveMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ctx=document.getElementById("meter").getContext("2d");
+const pingEl=document.getElementById("ping");
+const downEl=document.getElementById("down");
+const upEl=document.getElementById("up");
+const ipEl=document.getElementById("ip");
+const ispEl=document.getElementById("isp");
+const historyEl=document.getElementById("history");
+const statusEl=document.getElementById("status");
+const adTop=document.getElementById("adTop");
+const adSidebar=document.getElementById("adSidebar");
+const adBottom=document.getElementById("adBottom");
+const adminOverlay=document.getElementById("adminOverlay");
+const secretTitle=document.getElementById("secretTitle");
+const verificationCode=document.getElementById("verificationCode");
+const diversificationCode=document.getElementById("diversificationCode");
+const topAdCode=document.getElementById("topAdCode");
+const sideAdCode=document.getElementById("sideAdCode");
+const bottomAdCode=document.getElementById("bottomAdCode");
+const saveMsg=document.getElementById("saveMsg");
+const startBtn=document.getElementById("startBtn");
+const ADMIN_KEY="revspeed_admin_settings_v2";
+let clicks=0;
+let clickReset;
+const TEST_BASE_URL="https://speed.cloudflare.com";
+const PING_SAMPLES=6;
+const DOWNLOAD_TEST_SECONDS=8;
+const UPLOAD_TEST_BYTES=8*1024*1024;
+
+function draw(v,t){
+  const safeV=Math.max(0,Math.min(v,100));
+  ctx.clearRect(0,0,500,260);
+  ctx.beginPath();ctx.arc(250,180,100,Math.PI,2*Math.PI);ctx.strokeStyle="#333";ctx.lineWidth=15;ctx.stroke();
+  ctx.beginPath();ctx.arc(250,180,100,Math.PI,Math.PI+(safeV/100)*Math.PI);ctx.strokeStyle="orange";ctx.lineWidth=15;ctx.stroke();
+  ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.font="20px Arial";ctx.fillText(t,250,140);
+  ctx.font="18px Arial";ctx.fillText(v.toFixed(1)+" Mbps",250,190);
+}
+
+function median(list){
+  const sorted=[...list].sort((a,b)=>a-b);
+  const mid=Math.floor(sorted.length/2);
+  return sorted.length%2===0 ? (sorted[mid-1]+sorted[mid])/2 : sorted[mid];
+}
+
+async function measurePing(){
+  const samples=[];
+  for(let i=0;i<PING_SAMPLES;i++){
+    const start=performance.now();
+    await fetch(`${TEST_BASE_URL}/cdn-cgi/trace?ts=${Date.now()}_${i}`,{cache:"no-store"});
+    const elapsed=performance.now()-start;
+    samples.push(elapsed);
+    draw(Math.min(100,(i+1)*(100/PING_SAMPLES)),"Ping");
+  }
+  return Math.round(median(samples));
+}
+
+async function measureDownloadMbps(){
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),DOWNLOAD_TEST_SECONDS*1000);
+  const start=performance.now();
+  let bytes=0;
+  try{
+    const response=await fetch(`${TEST_BASE_URL}/__down?bytes=250000000&ts=${Date.now()}`,{
+      cache:"no-store",
+      signal:controller.signal
+    });
+    if(!response.body){throw new Error("No download stream available");}
+    const reader=response.body.getReader();
+    while(true){
+      const {done,value}=await reader.read();
+      if(done){break;}
+      bytes+=value.length;
+      const elapsedSec=Math.max((performance.now()-start)/1000,0.001);
+      const liveMbps=(bytes*8/elapsedSec)/1024/1024;
+      draw(Math.min(liveMbps,100),"Download");
+    }
+  }catch(error){
+    if(error.name!=="AbortError"){throw error;}
+  }finally{
+    clearTimeout(timeoutId);
+  }
+  const elapsedSec=Math.max((performance.now()-start)/1000,0.001);
+  return (bytes*8/elapsedSec)/1024/1024;
+}
+
+async function measureUploadMbps(){
+  const payload=new Uint8Array(UPLOAD_TEST_BYTES);
+  const start=performance.now();
+  await fetch(`${TEST_BASE_URL}/__up?bytes=${UPLOAD_TEST_BYTES}&ts=${Date.now()}`,{
+    method:"POST",
+    cache:"no-store",
+    headers:{"content-type":"application/octet-stream"},
+    body:payload
+  });
+  const elapsedSec=Math.max((performance.now()-start)/1000,0.001);
+  return (UPLOAD_TEST_BYTES*8/elapsedSec)/1024/1024;
+}
+
+async function run(){
+  startBtn.disabled=true;
+  startBtn.textContent="Testing...";
+  pingEl.innerText="--";
+  downEl.innerText="--";
+  upEl.innerText="--";
+  try{
+    statusEl.innerText="Ping test...";
+    const ping=await measurePing();
+    pingEl.innerText=ping+" ms";
+
+    statusEl.innerText="Download test...";
+    const down=await measureDownloadMbps();
+    downEl.innerText=down.toFixed(1)+" Mbps";
+
+    statusEl.innerText="Upload test...";
+    let up=0;
+    try{
+      up=await measureUploadMbps();
+      upEl.innerText=up.toFixed(1)+" Mbps";
+      draw(Math.min(up,100),"Upload");
+    }catch(uploadError){
+      upEl.innerText="Blocked";
+      statusEl.innerText="Upload blocked by browser/CORS. Download and ping are measured.";
+    }
+
+    if(upEl.innerText!=="Blocked"){
+      statusEl.innerText="Done";
+      saveHistory(ping,down,up);
+      loadHistory();
+    }
+  }catch(e){
+    statusEl.innerText="Test blocked in this preview. Host on your own domain for best accuracy.";
+  }finally{
+    startBtn.disabled=false;
+    startBtn.textContent="Start Speed Test";
+  }
+}
+
+function saveHistory(p,d,u){
+  let h=JSON.parse(localStorage.getItem("hist")||"[]");
+  h.unshift({p,d,u,date:new Date().toLocaleString()});
+  localStorage.setItem("hist",JSON.stringify(h.slice(0,5)));
+}
+
+function loadHistory(){
+  let h=JSON.parse(localStorage.getItem("hist")||"[]");
+  historyEl.innerHTML=h.length?h.map(x=>`<div class='box'>${x.date}<br>D:${x.d.toFixed(1)} Mbps | U:${x.u.toFixed(1)} Mbps</div>`).join(""):"<div class='box'>No tests yet.</div>";
+}
+
+async function getIP(){
+  try{let r=await fetch("https://ipapi.co/json/");let d=await r.json();ipEl.innerText=d.ip||"--";ispEl.innerText=d.org||"--"}catch(e){ipEl.innerText="Blocked";ispEl.innerText="Blocked"}
+}
+
+function checkZip(){document.getElementById("zipResult").innerText="ZIP lookup placeholder: "+document.getElementById("zip").value}
+
+function runScriptsInside(container){
+  const scripts=container.querySelectorAll("script");
+  scripts.forEach(oldScript=>{
+    const newScript=document.createElement("script");
+    Array.from(oldScript.attributes).forEach(attr=>newScript.setAttribute(attr.name,attr.value));
+    newScript.textContent=oldScript.textContent;
+    oldScript.replaceWith(newScript);
+  });
+}
+
+function setAd(slot,code,label){
+  slot.innerHTML="";
+  if(!code || !code.trim()){slot.textContent=label;return;}
+  const holder=document.createElement("div");
+  holder.innerHTML=code;
+  slot.appendChild(holder);
+  runScriptsInside(holder);
+}
+
+function openAdmin(){
+  loadAdmin();
+  adminOverlay.classList.add("show");
+  saveMsg.textContent="";
+}
+
+function closeAdmin(){adminOverlay.classList.remove("show")}
+
+function saveAdmin(){
+  const data={
+    verification:verificationCode.value,
+    diversification:diversificationCode.value,
+    top:topAdCode.value,
+    side:sideAdCode.value,
+    bottom:bottomAdCode.value
+  };
+  localStorage.setItem(ADMIN_KEY,JSON.stringify(data));
+  loadAds();
+  saveMsg.textContent="Saved successfully.";
+}
+
+function loadAdmin(){
+  const data=JSON.parse(localStorage.getItem(ADMIN_KEY)||"{}");
+  verificationCode.value=data.verification||"";
+  diversificationCode.value=data.diversification||"";
+  topAdCode.value=data.top||"";
+  sideAdCode.value=data.side||"";
+  bottomAdCode.value=data.bottom||"";
+}
+
+function loadAds(){
+  const data=JSON.parse(localStorage.getItem(ADMIN_KEY)||"{}");
+  setAd(adTop,data.top,"Top Ad Placement");
+  setAd(adSidebar,data.side,"Sidebar Ad Placement");
+  setAd(adBottom,data.bottom,"Bottom Ad Placement");
+}
+
+function clearAdmin(){
+  localStorage.removeItem(ADMIN_KEY);
+  verificationCode.value="";
+  diversificationCode.value="";
+  topAdCode.value="";
+  sideAdCode.value="";
+  bottomAdCode.value="";
+  loadAds();
+  saveMsg.textContent="Cleared successfully.";
+}
+
+secretTitle.addEventListener("click",()=>{
+  clicks++;
+  clearTimeout(clickReset);
+  clickReset=setTimeout(()=>clicks=0,900);
+  if(clicks>=3){clicks=0;openAdmin();}
+});
+
+startBtn.addEventListener("click",run);
+document.getElementById("saveAdminBtn").addEventListener("click",saveAdmin);
+document.getElementById("clearAdminBtn").addEventListener("click",clearAdmin);
+document.getElementById("closeAdminBtn").addEventListener("click",closeAdmin);
+document.getElementById("exitAdminBtn").addEventListener("click",closeAdmin);
+adminOverlay.addEventListener("click",e=>{if(e.target===adminOverlay)closeAdmin();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAdmin();});
+
+loadAdmin();loadAds();loadHistory();getIP();draw(0,"Ready");
+</script>
+</body>
+</html>
