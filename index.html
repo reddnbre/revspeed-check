@@ -85,7 +85,7 @@ textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;bord
       <h2>RevSpeed Back Office</h2>
       <button id="exitAdminBtn" class="dark-btn" type="button">Exit</button>
     </div>
-    <p class="note">Paste verification, diversification, and ad placement codes here. This version saves to this browser using localStorage for testing.</p>
+    <p class="note">Paste verification, diversification, and ad placement codes here. Storage is disabled, so settings are kept only while this page is open.</p>
 
     <div class="admin-grid">
       <div class="admin-box wide">
@@ -150,13 +150,22 @@ const sideAdCode=document.getElementById("sideAdCode");
 const bottomAdCode=document.getElementById("bottomAdCode");
 const saveMsg=document.getElementById("saveMsg");
 const startBtn=document.getElementById("startBtn");
-const ADMIN_KEY="revspeed_admin_settings_v2";
 let clicks=0;
 let clickReset;
 const TEST_BASE_URL="https://speed.cloudflare.com";
 const PING_SAMPLES=6;
 const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
+const sessionState={
+  history:[],
+  admin:{
+    verification:"",
+    diversification:"",
+    top:"",
+    side:"",
+    bottom:""
+  }
+};
 const UPLOAD_ENDPOINTS=[
   `${TEST_BASE_URL}/__up`,
   "https://httpbin.org/post",
@@ -297,13 +306,12 @@ async function run(){
 }
 
 function saveHistory(p,d,u){
-  let h=JSON.parse(localStorage.getItem("hist")||"[]");
-  h.unshift({p,d,u,date:new Date().toLocaleString()});
-  localStorage.setItem("hist",JSON.stringify(h.slice(0,5)));
+  sessionState.history.unshift({p,d,u,date:new Date().toLocaleString()});
+  sessionState.history=sessionState.history.slice(0,5);
 }
 
 function loadHistory(){
-  let h=JSON.parse(localStorage.getItem("hist")||"[]");
+  let h=sessionState.history;
   historyEl.innerHTML=h.length?h.map(x=>`<div class='box'>${x.date}<br>P:${x.p} ms | D:${x.d.toFixed(1)} Mbps | U:${x.u===null?"N/A":x.u.toFixed(1)+" Mbps"}</div>`).join(""):"<div class='box'>No tests yet.</div>";
 }
 
@@ -341,20 +349,19 @@ function openAdmin(){
 function closeAdmin(){adminOverlay.classList.remove("show")}
 
 function saveAdmin(){
-  const data={
+  sessionState.admin={
     verification:verificationCode.value,
     diversification:diversificationCode.value,
     top:topAdCode.value,
     side:sideAdCode.value,
     bottom:bottomAdCode.value
   };
-  localStorage.setItem(ADMIN_KEY,JSON.stringify(data));
   loadAds();
-  saveMsg.textContent="Saved successfully.";
+  saveMsg.textContent="Saved for this session only.";
 }
 
 function loadAdmin(){
-  const data=JSON.parse(localStorage.getItem(ADMIN_KEY)||"{}");
+  const data=sessionState.admin;
   verificationCode.value=data.verification||"";
   diversificationCode.value=data.diversification||"";
   topAdCode.value=data.top||"";
@@ -363,14 +370,20 @@ function loadAdmin(){
 }
 
 function loadAds(){
-  const data=JSON.parse(localStorage.getItem(ADMIN_KEY)||"{}");
+  const data=sessionState.admin;
   setAd(adTop,data.top,"Top Ad Placement");
   setAd(adSidebar,data.side,"Sidebar Ad Placement");
   setAd(adBottom,data.bottom,"Bottom Ad Placement");
 }
 
 function clearAdmin(){
-  localStorage.removeItem(ADMIN_KEY);
+  sessionState.admin={
+    verification:"",
+    diversification:"",
+    top:"",
+    side:"",
+    bottom:""
+  };
   verificationCode.value="";
   diversificationCode.value="";
   topAdCode.value="";
