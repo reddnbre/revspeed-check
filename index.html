@@ -154,6 +154,8 @@ let clicks=0;
 let clickReset;
 const rawApiBase=(window.REVSPEED_API_BASE||"").trim();
 const API_BASE=rawApiBase ? rawApiBase.replace(/\/+$/,"") : ((location.hostname==="localhost"||location.hostname==="127.0.0.1") ? "http://localhost:8787" : "");
+const PUBLIC_TEST_BASE="https://speed.cloudflare.com";
+const IS_BACKEND_MODE=Boolean(API_BASE);
 const PING_SAMPLES=6;
 const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
@@ -193,7 +195,10 @@ async function measurePing(){
   const samples=[];
   for(let i=0;i<PING_SAMPLES;i++){
     const start=performance.now();
-    await fetch(`${API_BASE}/ping?ts=${Date.now()}_${i}`,{cache:"no-store"});
+    const pingUrl=IS_BACKEND_MODE
+      ? `${API_BASE}/ping?ts=${Date.now()}_${i}`
+      : `${PUBLIC_TEST_BASE}/cdn-cgi/trace?ts=${Date.now()}_${i}`;
+    await fetch(pingUrl,{cache:"no-store"});
     const elapsed=performance.now()-start;
     samples.push(elapsed);
     draw(Math.min(100,(i+1)*(100/PING_SAMPLES)),"Ping Progress","%",100);
@@ -207,7 +212,10 @@ async function measureDownloadMbps(){
   const start=performance.now();
   let bytes=0;
   try{
-    const response=await fetch(`${API_BASE}/download?bytes=250000000&ts=${Date.now()}`,{
+    const downloadUrl=IS_BACKEND_MODE
+      ? `${API_BASE}/download?bytes=250000000&ts=${Date.now()}`
+      : `${PUBLIC_TEST_BASE}/__down?bytes=250000000&ts=${Date.now()}`;
+    const response=await fetch(downloadUrl,{
       cache:"no-store",
       signal:controller.signal
     });
@@ -231,6 +239,9 @@ async function measureDownloadMbps(){
 }
 
 async function tryUploadEndpoint(payload){
+  if(!IS_BACKEND_MODE){
+    throw new Error("Upload requires backend mode");
+  }
   const start=performance.now();
   await fetch(`${API_BASE}/upload?ts=${Date.now()}`,{
     method:"POST",
@@ -256,9 +267,8 @@ async function run(){
   kpiDown.innerText="--";
   kpiUp.innerText="--";
   try{
-    if(!API_BASE){
-      statusEl.innerText="Backend not configured. Set window.REVSPEED_API_BASE to your Node API URL.";
-      return;
+    if(!IS_BACKEND_MODE){
+      statusEl.innerText="Public mode: ping/download enabled. Set REVSPEED_API_BASE for upload + best accuracy.";
     }
     statusEl.innerText="Ping test...";
     const ping=await measurePing();
@@ -399,7 +409,7 @@ adminOverlay.addEventListener("click",e=>{if(e.target===adminOverlay)closeAdmin(
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAdmin();});
 
 if(!API_BASE){
-  statusEl.innerText="Backend not set. Use window.REVSPEED_API_BASE='https://your-api-domain' or run locally.";
+  statusEl.innerText="Public mode ready. For upload accuracy, set window.REVSPEED_API_BASE or open localhost backend.";
 }
 loadAdmin();loadAds();loadHistory();getIP();draw(0,"Ready","Mbps",1000);
 </script>
