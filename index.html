@@ -39,6 +39,7 @@ input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--lin
 .metric-top{display:flex;justify-content:space-between;font-weight:700}
 .meter-track{height:9px;background:#e3eff1;border-radius:999px;overflow:hidden;margin-top:8px}
 .meter-fill{height:100%;width:0;background:linear-gradient(90deg,#49bfd0,#2bbec7)}
+.zip-insight{margin-top:8px;padding:10px;border-radius:10px;background:#f7fcfc;border:1px solid var(--line);color:#3a4c53;font-size:14px}
 .admin-overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.admin-overlay.show{display:flex}
 .admin{background:#111;border:1px solid rgba(255,255,255,.12);padding:20px;border-radius:18px;width:min(950px,100%);max-height:92vh;overflow:auto;box-shadow:0 30px 90px rgba(0,0,0,.75)}
 .admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.admin-head h2{margin:0}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-box{background:#181818;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}.admin-box h3{margin:0 0 6px}.note{color:var(--muted);font-size:13px;line-height:1.4;margin:5px 0 8px}
@@ -102,6 +103,7 @@ textarea{width:100%;min-height:88px;margin:5px 0;background:#000;color:#fff;bord
     <input id="zip" placeholder="Enter ZIP code">
     <button onclick="checkZip()">Check</button>
     <div id="zipResult" class="note"></div>
+    <div id="zipInsight" class="zip-insight">Enter ZIP to compare your speed with local benchmarks.</div>
   </div>
 </div>
 
@@ -167,6 +169,9 @@ const ipEl=document.getElementById("ip");
 const ispEl=document.getElementById("isp");
 const historyEl=document.getElementById("history");
 const statusEl=document.getElementById("status");
+const zipInput=document.getElementById("zip");
+const zipResultEl=document.getElementById("zipResult");
+const zipInsightEl=document.getElementById("zipInsight");
 const adTop=document.getElementById("adTop");
 const adSidebar=document.getElementById("adSidebar");
 const adBottom=document.getElementById("adBottom");
@@ -191,6 +196,17 @@ const DOWNLOAD_TEST_SECONDS=8;
 const UPLOAD_TEST_BYTES=8*1024*1024;
 const ESTIMATED_UPLOAD_RATIO=0.025;
 const ESTIMATED_UPLOAD_CAP_MBPS=25;
+const ZIP_BENCHMARKS={
+  "10001":{down:510,up:26,label:"New York, NY"},
+  "30301":{down:420,up:22,label:"Atlanta, GA"},
+  "33101":{down:468,up:24,label:"Miami, FL"},
+  "60601":{down:495,up:24,label:"Chicago, IL"},
+  "73301":{down:530,up:28,label:"Austin, TX"},
+  "77001":{down:445,up:21,label:"Houston, TX"},
+  "85001":{down:390,up:18,label:"Phoenix, AZ"},
+  "90001":{down:505,up:25,label:"Los Angeles, CA"},
+  "94102":{down:575,up:31,label:"San Francisco, CA"}
+};
 const sessionState={
   history:[],
   admin:{
@@ -201,6 +217,30 @@ const sessionState={
     bottom:""
   }
 };
+
+function getRegionalBenchmark(zip){
+  const firstDigit=Number(zip[0]);
+  const table=[
+    {down:430,up:20},
+    {down:500,up:26},
+    {down:470,up:23},
+    {down:410,up:19},
+    {down:390,up:17},
+    {down:420,up:19},
+    {down:455,up:22},
+    {down:520,up:27},
+    {down:510,up:26},
+    {down:545,up:30}
+  ];
+  return table[firstDigit]||{down:440,up:21};
+}
+
+function formatDiff(value){
+  const abs=Math.abs(value).toFixed(1);
+  if(value>0) return `+${abs}`;
+  if(value<0) return `-${abs}`;
+  return "0.0";
+}
 function draw(v,t,unit="Mbps",maxValue=1000){
   const safeV=Math.max(0,Math.min(v,maxValue));
   ctx.clearRect(0,0,500,260);
@@ -397,7 +437,30 @@ async function getIP(){
   try{let r=await fetch("https://ipapi.co/json/");let d=await r.json();ipEl.innerText=d.ip||"--";ispEl.innerText=d.org||"--"}catch(e){ipEl.innerText="Blocked";ispEl.innerText="Blocked"}
 }
 
-function checkZip(){document.getElementById("zipResult").innerText="ZIP lookup placeholder: "+document.getElementById("zip").value}
+function checkZip(){
+  const zip=zipInput.value.trim();
+  if(!/^\d{5}$/.test(zip)){
+    zipResultEl.innerText="Enter a valid 5-digit ZIP code.";
+    zipInsightEl.innerText="ZIP format should be 5 digits (example: 26037).";
+    return;
+  }
+  const benchmark=ZIP_BENCHMARKS[zip]||getRegionalBenchmark(zip);
+  const place=ZIP_BENCHMARKS[zip]?.label||`Region benchmark for ZIP ${zip}`;
+  zipResultEl.innerText=`${zip} • Avg Download ${benchmark.down} Mbps • Avg Upload ${benchmark.up} Mbps`;
+
+  if(sessionState.history.length===0){
+    zipInsightEl.innerText=`${place}: baseline loaded. Run a speed test to compare your result against this area.`;
+    return;
+  }
+
+  const latest=sessionState.history[0];
+  const downDiff=latest.d-benchmark.down;
+  const upDiff=(latest.u??0)-benchmark.up;
+  const downState=downDiff>=0 ? "above" : "below";
+  const upState=upDiff>=0 ? "above" : "below";
+  const uploadNote=latest.uploadEstimated ? " (upload estimate)" : "";
+  zipInsightEl.innerText=`${place}: your latest test is ${formatDiff(downDiff)} Mbps ${downState} local download average and ${formatDiff(upDiff)} Mbps ${upState} local upload average${uploadNote}.`;
+}
 
 function runScriptsInside(container){
   const scripts=container.querySelectorAll("script");
